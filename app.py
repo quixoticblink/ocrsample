@@ -25,6 +25,8 @@ import pandas as pd
 import streamlit as st
 from PIL import Image
 
+from carbon_theme import CARBON_CSS
+
 
 SUPPORTED_TYPES = ["png", "jpg", "jpeg", "webp", "bmp", "tif", "tiff"]
 
@@ -142,7 +144,7 @@ def build_combined_zip(
 
 def render_result_row(idx: int, result: dict):
     """Render the two-column row for a single image result."""
-    st.markdown(f"### 📄 {result['name']}")
+    st.markdown(f"### {result['name']}")
 
     left, right = st.columns(2, gap="large")
 
@@ -239,10 +241,13 @@ def main():
         layout="wide",
     )
 
-    st.title("📊 Image Data Extractor")
+    # Inject Carbon Design System styles
+    st.markdown(CARBON_CSS, unsafe_allow_html=True)
+
+    st.title("Image Data Extractor")
     st.caption(
         "Upload one or more images (PNG, JPG, JPEG, WEBP, BMP, TIFF). "
-        "Docling extracts tables *and* full text — works for both table snippets "
+        "Docling extracts tables and full text — works for both table snippets "
         "and text-heavy documents."
     )
 
@@ -335,7 +340,7 @@ def main():
         render_result_row(idx, r)
 
     # ---------- Combined downloads at the bottom ---------- #
-    st.subheader("Download everything")
+    st.subheader("Download all results")
 
     combined_xlsx_bytes = dataframes_to_xlsx(combined_named_tables)
     zip_bytes = build_combined_zip(per_file_results, combined_xlsx_bytes)
