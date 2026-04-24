@@ -14,6 +14,15 @@ Run:
 
 from __future__ import annotations
 
+import os
+
+# Redirect model caches to writable directories (Streamlit Cloud has a
+# read-only venv, so rapidocr/torch/HF can't write to site-packages).
+os.environ.setdefault("RAPIDOCR_MODEL_DIR", "/tmp/rapidocr_models")
+os.environ.setdefault("HF_HOME", "/tmp/hf_home")
+os.environ.setdefault("TORCH_HOME", "/tmp/torch_home")
+os.environ.setdefault("XDG_CACHE_HOME", "/tmp/cache")
+
 import io
 import re
 import tempfile
@@ -36,9 +45,22 @@ SUPPORTED_TYPES = ["png", "jpg", "jpeg", "webp", "bmp", "tif", "tiff"]
 @st.cache_resource(show_spinner="Loading Docling models (first run downloads weights)...")
 def get_docling_converter():
     """Instantiate and cache the Docling DocumentConverter."""
-    from docling.document_converter import DocumentConverter
+    import shutil
+    import importlib
 
-    # Default converter handles images (PNG/JPG/etc.) out of the box.
+    # Copy rapidocr bundled models to a writable location if needed
+    model_dir = os.environ.get("RAPIDOCR_MODEL_DIR", "/tmp/rapidocr_models")
+    if not os.path.exists(model_dir):
+        try:
+            spec = importlib.util.find_spec("rapidocr")
+            if spec and spec.submodule_search_locations:
+                src = os.path.join(spec.submodule_search_locations[0], "models")
+                if os.path.isdir(src):
+                    shutil.copytree(src, model_dir, dirs_exist_ok=True)
+        except Exception:
+            os.makedirs(model_dir, exist_ok=True)
+
+    from docling.document_converter import DocumentConverter
     return DocumentConverter()
 
 
