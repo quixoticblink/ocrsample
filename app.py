@@ -45,23 +45,33 @@ SUPPORTED_TYPES = ["png", "jpg", "jpeg", "webp", "bmp", "tif", "tiff"]
 def get_docling_converter():
     """Instantiate and cache the Docling DocumentConverter.
 
-    Uses Tesseract OCR instead of RapidOCR to avoid permission errors
+    Uses Tesseract CLI OCR instead of RapidOCR to avoid permission errors
     on Streamlit Cloud (RapidOCR tries to write models into the
     read-only venv).
     """
-    from docling.document_converter import DocumentConverter
-    from docling.datamodel.pipeline_options import PipelineOptions
+    from docling.datamodel.base_models import InputFormat
+    from docling.datamodel.pipeline_options import PdfPipelineOptions
+    from docling.document_converter import DocumentConverter, PdfFormatOption, ImageFormatOption
 
-    pipeline_opts = PipelineOptions()
+    pipeline_opts = PdfPipelineOptions(do_ocr=True)
 
-    # Try to use Tesseract; fall back to default if unavailable
+    # Use Tesseract CLI (no Python binding needed, just the system package)
     try:
-        from docling.datamodel.pipeline_options import TesseractOcrOptions
-        pipeline_opts.ocr_options = TesseractOcrOptions()
+        from docling.datamodel.pipeline_options import TesseractCliOcrOptions
+        pipeline_opts.ocr_options = TesseractCliOcrOptions()
     except ImportError:
-        pass  # Use default OCR (works locally where venv is writable)
+        try:
+            from docling.datamodel.pipeline_options import TesseractOcrOptions
+            pipeline_opts.ocr_options = TesseractOcrOptions()
+        except ImportError:
+            pass  # Fall back to default OCR (works locally)
 
-    return DocumentConverter(pipeline_options=pipeline_opts)
+    return DocumentConverter(
+        format_options={
+            InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_opts),
+            InputFormat.IMAGE: ImageFormatOption(pipeline_options=pipeline_opts),
+        }
+    )
 
 
 # ---------- Extraction ---------- #
